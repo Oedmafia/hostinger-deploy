@@ -1,0 +1,39 @@
+name: 'Hostinger Zero-Downtime Deploy'
+description: 'Atomic zero-downtime deployment for PHP, Node and web applications on Hostinger via SSH'
+author: 'Oedmafia'
+branding:
+  icon: 'upload-cloud'
+  color: 'purple'
+
+inputs:
+  host:
+    description: 'Hostinger SSH Host (e.g. srv123.main-hosting.eu or IP)'
+    required: true
+  username:
+    description: 'Hostinger SSH Username (e.g. u123456789)'
+    required: true
+  key:
+    description: 'SSH Private Key content'
+    required: false
+  password:
+    description: 'SSH Password (if not using key)'
+    required: false
+  port:
+    description: 'SSH Port (default: 65002 on Hostinger or 22)'
+    required: false
+    default: '65002'
+  remote_path:
+    description: 'Root directory on server (e.g. /home/u123456789/domains/meusite.com)'
+    required: true
+  keep_releases:
+    description: 'Number of old releases to keep'
+    required: false
+    default: '5'
+  command:
+    description: 'Action to perform: deploy (default) or rollback'
+    required: false
+    default: 'deploy'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.cjs'
