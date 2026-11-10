@@ -88,7 +88,7 @@ jobs:
 
       # Passo 2: O Deploy Atômico na Hostinger
       - name: Deploy Atômico
-        uses: Oedmafia/hostinger-deploy@main
+        uses: Oedmafia/hostinger-deploy@v1
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USER }}
@@ -96,6 +96,8 @@ jobs:
           port: '65002' # Porta SSH padrão da Hostinger
           remote_path: '/home/u123456789/domains/meusite.com'
           keep_releases: 5
+          shared_files: '.env'
+          shared_dirs: 'storage/uploads, storage/logs'
 
       # Passo 3: Verificação de saúde da API
       - name: Healthcheck
@@ -144,6 +146,8 @@ remote_path: '/home/u123456789/domains/meusite.com/public_html/api/v1'
 | `port` | Não | `65002` | Porta SSH |
 | `keep_releases` | Não | `5` | Quantidade de versões antigas mantidas no servidor |
 | `command` | Não | `deploy` | Ação a executar: `deploy` (padrão) ou `rollback` |
+| `shared_files` | Não | `.env` | Lista separada por vírgula de arquivos persistentes para linkar |
+| `shared_dirs` | Não | `storage, uploads` | Lista separada por vírgula de pastas persistentes para linkar (ex: `storage/uploads, storage/logs`) |
 
 ---
 

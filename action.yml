@@ -33,6 +33,14 @@ inputs:
     description: 'Action to perform: deploy (default) or rollback'
     required: false
     default: 'deploy'
+  shared_files:
+    description: 'Comma-separated list of persistent files to link (default: .env)'
+    required: false
+    default: '.env'
+  shared_dirs:
+    description: 'Comma-separated list of persistent directories to link (e.g. storage, uploads, storage/logs)'
+    required: false
+    default: 'storage, uploads'
 
 runs:
   using: 'node20'

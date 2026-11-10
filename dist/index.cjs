@@ -29302,7 +29302,7 @@ var Deployer = class {
     this.config = {
       keepReleases: 5,
       sharedFiles: [".env"],
-      sharedDirs: ["storage"],
+      sharedDirs: ["storage", "uploads"],
       ...config
     };
     this.ssh = new SSHClient();
@@ -29323,7 +29323,7 @@ var Deployer = class {
   async setup() {
     await this.ssh.execute(`mkdir -p ${this.releasesPath} ${this.sharedPath}`);
     if (this.config.sharedDirs.length > 0) {
-      const dirs = this.config.sharedDirs.map((dir) => `${this.sharedPath}/${dir}`).join(" ");
+      const dirs = this.config.sharedDirs.map((dir) => `"${this.sharedPath}/${dir}"`).join(" ");
       await this.ssh.execute(`mkdir -p ${dirs}`);
     }
   }
@@ -29332,14 +29332,14 @@ var Deployer = class {
       const source = `${this.sharedPath}/${file}`;
       const target = `${releasePath}/${file}`;
       await this.ssh.execute(
-        `if [ -f "${source}" ]; then ln -nfs "${source}" "${target}"; fi`
+        `mkdir -p "$(dirname "${target}")" && if [ -f "${source}" ]; then ln -nfs "${source}" "${target}"; fi`
       );
     }
     for (const dir of this.config.sharedDirs) {
       const source = `${this.sharedPath}/${dir}`;
       const target = `${releasePath}/${dir}`;
       await this.ssh.execute(
-        `rm -rf "${target}" && ln -nfs "${source}" "${target}"`
+        `mkdir -p "${source}" && mkdir -p "$(dirname "${target}")" && rm -rf "${target}" && ln -nfs "${source}" "${target}"`
       );
     }
   }
@@ -29431,6 +29431,11 @@ function resolveKey(keyOrPath) {
   }
   return keyOrPath;
 }
+function parseList(value, defaultValue = []) {
+  if (!value) return defaultValue;
+  const items = value.split(/[,\n]/).map((item) => item.trim()).filter((item) => item.length > 0);
+  return items.length > 0 ? items : defaultValue;
+}
 program2.name("hostinger-deploy").description("Zero-downtime atomic deployment engine for Hostinger").version("0.1.0");
 program2.command("pack").description("Create compressed bundle without deploying").option("-o, --output <path>", "Output path", "release.tar.gz").action(async (options) => {
   try {
@@ -29475,6 +29480,14 @@ program2.command("deploy", { isDefault: true }).description("Execute atomic depl
   "--keep <number>",
   "Releases to retain",
   process.env.INPUT_KEEP_RELEASES || "5"
+).option(
+  "--shared-files <files>",
+  "Comma-separated list of persistent files to link",
+  process.env.INPUT_SHARED_FILES
+).option(
+  "--shared-dirs <dirs>",
+  "Comma-separated list of persistent directories to link",
+  process.env.INPUT_SHARED_DIRS
 ).option("--dry-run", "Simulate packaging and parameter validation without SSH execution").action(async (options) => {
   const tempArchive = import_node_path12.default.resolve(process.cwd(), `bundle_${Date.now()}.tar.gz`);
   try {
@@ -29482,10 +29495,14 @@ program2.command("deploy", { isDefault: true }).description("Execute atomic depl
       sourceDir: process.cwd(),
       outputPath: tempArchive
     });
+    const sharedFiles = parseList(options.sharedFiles, [".env"]);
+    const sharedDirs = parseList(options.sharedDirs, ["storage", "uploads"]);
     if (options.dryRun) {
       logger.info("Dry-run mode enabled: skipping remote transport");
       logger.info(`Target host: ${options.host || "unspecified"}`);
       logger.info(`Target path: ${options.remotePath || "unspecified"}`);
+      logger.info(`Shared files: ${sharedFiles.join(", ")}`);
+      logger.info(`Shared directories: ${sharedDirs.join(", ")}`);
       logger.success("Dry-run validation completed successfully");
       return;
     }
@@ -29504,8 +29521,8 @@ program2.command("deploy", { isDefault: true }).description("Execute atomic depl
       },
       remotePath: options.remotePath,
       keepReleases: parseInt(options.keep, 10),
-      sharedFiles: [".env"],
-      sharedDirs: ["storage", "uploads"]
+      sharedFiles,
+      sharedDirs
     };
     const deployer = new Deployer(config);
     await deployer.deploy(tempArchive);

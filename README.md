@@ -88,7 +88,7 @@ jobs:
 
       # Step 2: Atomic Deployment
       - name: Deploy to Hostinger
-        uses: Oedmafia/hostinger-deploy@main
+        uses: Oedmafia/hostinger-deploy@v1
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USER }}
@@ -96,6 +96,8 @@ jobs:
           port: '65002' # Default Hostinger SSH port
           remote_path: '/home/u123456789/domains/yourdomain.com'
           keep_releases: 5
+          shared_files: '.env'
+          shared_dirs: 'storage/uploads, storage/logs'
 
       # Step 3: Healthcheck API validation
       - name: Healthcheck
@@ -144,6 +146,8 @@ remote_path: '/home/u123456789/domains/yourdomain.com/public_html/api/v1'
 | `port` | No | `65002` | SSH port number |
 | `keep_releases` | No | `5` | Number of recent releases retained on the server |
 | `command` | No | `deploy` | Action to execute: `deploy` (default) or `rollback` |
+| `shared_files` | No | `.env` | Comma-separated list of persistent files to link |
+| `shared_dirs` | No | `storage, uploads` | Comma-separated list of persistent directories to link (e.g. `storage/uploads, storage/logs`) |
 
 ---
 

@@ -10,7 +10,7 @@ export class Deployer {
     this.config = {
       keepReleases: 5,
       sharedFiles: [".env"],
-      sharedDirs: ["storage"],
+      sharedDirs: ["storage", "uploads"],
       ...config,
     };
     this.ssh = new SSHClient();
@@ -38,7 +38,7 @@ export class Deployer {
 
     if (this.config.sharedDirs.length > 0) {
       const dirs = this.config.sharedDirs
-        .map((dir) => `${this.sharedPath}/${dir}`)
+        .map((dir) => `"${this.sharedPath}/${dir}"`)
         .join(" ");
       await this.ssh.execute(`mkdir -p ${dirs}`);
     }
@@ -49,7 +49,7 @@ export class Deployer {
       const source = `${this.sharedPath}/${file}`;
       const target = `${releasePath}/${file}`;
       await this.ssh.execute(
-        `if [ -f "${source}" ]; then ln -nfs "${source}" "${target}"; fi`
+        `mkdir -p "$(dirname "${target}")" && if [ -f "${source}" ]; then ln -nfs "${source}" "${target}"; fi`
       );
     }
 
@@ -57,7 +57,7 @@ export class Deployer {
       const source = `${this.sharedPath}/${dir}`;
       const target = `${releasePath}/${dir}`;
       await this.ssh.execute(
-        `rm -rf "${target}" && ln -nfs "${source}" "${target}"`
+        `mkdir -p "${source}" && mkdir -p "$(dirname "${target}")" && rm -rf "${target}" && ln -nfs "${source}" "${target}"`
       );
     }
   }

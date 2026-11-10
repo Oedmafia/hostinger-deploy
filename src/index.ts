@@ -28,6 +28,15 @@ function resolveKey(keyOrPath?: string): string | undefined {
   return keyOrPath;
 }
 
+function parseList(value?: string, defaultValue: string[] = []): string[] {
+  if (!value) return defaultValue;
+  const items = value
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : defaultValue;
+}
+
 program
   .name("hostinger-deploy")
   .description("Zero-downtime atomic deployment engine for Hostinger")
@@ -92,6 +101,16 @@ program
     "Releases to retain",
     process.env.INPUT_KEEP_RELEASES || "5"
   )
+  .option(
+    "--shared-files <files>",
+    "Comma-separated list of persistent files to link",
+    process.env.INPUT_SHARED_FILES
+  )
+  .option(
+    "--shared-dirs <dirs>",
+    "Comma-separated list of persistent directories to link",
+    process.env.INPUT_SHARED_DIRS
+  )
   .option("--dry-run", "Simulate packaging and parameter validation without SSH execution")
   .action(async (options) => {
     const tempArchive = path.resolve(process.cwd(), `bundle_${Date.now()}.tar.gz`);
@@ -102,10 +121,15 @@ program
         outputPath: tempArchive,
       });
 
+      const sharedFiles = parseList(options.sharedFiles, [".env"]);
+      const sharedDirs = parseList(options.sharedDirs, ["storage", "uploads"]);
+
       if (options.dryRun) {
         logger.info("Dry-run mode enabled: skipping remote transport");
         logger.info(`Target host: ${options.host || "unspecified"}`);
         logger.info(`Target path: ${options.remotePath || "unspecified"}`);
+        logger.info(`Shared files: ${sharedFiles.join(", ")}`);
+        logger.info(`Shared directories: ${sharedDirs.join(", ")}`);
         logger.success("Dry-run validation completed successfully");
         return;
       }
@@ -126,8 +150,8 @@ program
         },
         remotePath: options.remotePath,
         keepReleases: parseInt(options.keep, 10),
-        sharedFiles: [".env"],
-        sharedDirs: ["storage", "uploads"],
+        sharedFiles,
+        sharedDirs,
       };
 
       const deployer = new Deployer(config);
